@@ -3,8 +3,8 @@ var w = window.innerWidth,
     fill = d3.scale.category20();
 
 var nodeSize = 20;
-var charge = -960;
-var linkDistance = 120;
+var charge = -2000;
+var linkDistance = 250;
 
 var vis = d3.select("#chart")
   .append("svg:svg")
@@ -33,11 +33,14 @@ d3.json("/json", function(json) {
       .attr("target", function(d) { return d.target.name; });
 
   link.append("svg:title")
-    .text(function(d) { 
+    .text(function(d) {
       return d.source.name.concat(" --> ", d.target.name);
     })
 
-  var node = vis.selectAll("circle.node")
+    // dirty hack to make the texts over the circles. As circles below seems to make circle.node disappear.
+    var later_nodes = vis.selectAll("circle.node")
+
+    var node = vis.selectAll("circle.node")
       .data(json.nodes)
     .enter().append("svg:circle")
       .attr("class", "node")
@@ -46,12 +49,26 @@ d3.json("/json", function(json) {
       .attr("r", nodeSize)
       .attr("name", function(d) { return d.name })
       .attr("selected", false)
-      .style("fill", function(d) { return fill(d.group); })
+        // light blue, otherwise text is unreadable.
+      .style("fill", function(d) { return "lightsteelblue" })
       .on("click", nodeClick)
       .call(force.drag);
 
-  node.append("svg:title")
-    .text(function(d) { return d.name; })
+  // node.append("svg:title")
+  //  .text(function(d) { return d.name; })
+
+  var gs = later_nodes
+    .data(json.nodes)
+  .enter().append("g")
+      .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"})
+    .call(force.drag);
+
+
+
+  gs.append("text")
+      .text(function(d) { return d.name.replace(json.package_name + ".", ""); })
+      .attr("text-anchor", "middle")
+    .style("font-size", "1em");
 
   vis.style("opacity", 1e-6)
     .transition()
@@ -66,14 +83,16 @@ d3.json("/json", function(json) {
 
     node.attr("cx", function(d) { return d.x; })
         .attr("cy", function(d) { return d.y; });
+
+    gs.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"})
   });
 
   d3.select("svg").append("text")
     .attr('id', 'title')
-    .attr("x", w/2)             
-    .attr("y", 200)
-    .attr("text-anchor", "middle")  
-    .style("font-size", "10em") 
+    .attr("x", 100)
+    .attr("y", 100)
+    .attr("text-anchor", "left")
+    .style("font-size", "2em")
     .text(json.package_name);
 
 
@@ -96,7 +115,8 @@ d3.json("/json", function(json) {
     var node = selectNode(name);
     node.transition().duration(500)
       .attr("r", nodeSize)
-      .style("fill", function(d) { return fill(d.group); });
+        // back to readable color. Unfortunately not a group color :(
+      .style("fill", function(d) { return "lightsteelblue"; });
 
     var imports = selectLinks(name, 'source');
     imports.transition().duration(500)
@@ -110,7 +130,7 @@ d3.json("/json", function(json) {
   function highlightNode(name) {
     var node = selectNode(name);
     node.transition().duration(500)
-      .attr("r", nodeSize * 2)
+      .attr("r", nodeSize * 1.1)
       .style("fill", "red");
 
     var imports = selectLinks(name, 'source');
